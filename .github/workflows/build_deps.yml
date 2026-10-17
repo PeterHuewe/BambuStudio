@@ -75,12 +75,11 @@ jobs:
         run: Compress-Archive -Path "${{ github.workspace }}\deps\build\BambuStudio_dep\*" -DestinationPath "${{ github.workspace }}\deps\build\BambuStudio_dep_win64_${{ env.date }}_vs2022.zip"
         shell: pwsh
 
-      # Windows on ARM64/ARM64EC. The windows-11-arm runner ships Visual
-      # Studio 2022 (v17), not 2026, so the generator differs from the x64 job
-      # above. All per-dep arch handling lives in deps/*.cmake and is selected
-      # automatically from the -A platform (arm64ec = native ARM64 code with
-      # the x64-compatible ABI, which is what lets the app load the x64-only
-      # Bambu network plugin in-process).
+      # Windows on ARM64/ARM64EC. Same Visual Studio 2026 generator as the x64
+      # job above, only the platform differs. All per-dep arch handling lives
+      # in deps/*.cmake and is selected automatically from the -A platform
+      # (arm64ec = native ARM64 code with the x64-compatible ABI, which is what
+      # lets the app load the x64-only Bambu network plugin in-process).
       - name: Build on Windows ARM64/ARM64EC
         if: inputs.os == 'windows-11-arm'
         working-directory: ${{ github.workspace }}
@@ -91,7 +90,7 @@ jobs:
             mkdir ${{ github.workspace }}\deps\build\BambuStudio_dep
             cd "${{ github.workspace }}\deps\build"
             $platform = "${{ inputs.arch }}" -eq "arm64ec" ? "ARM64EC" : "ARM64"
-            cmake ../ -G "Visual Studio 17 2022" -A $platform -DDESTDIR="./BambuStudio_dep" -DCMAKE_BUILD_TYPE=Release -DDEP_DEBUG=OFF
+            cmake ../ -G "Visual Studio 18 2026" -A $platform -DDESTDIR="./BambuStudio_dep" -DCMAKE_BUILD_TYPE=Release -DDEP_DEBUG=OFF
             msbuild /m ALL_BUILD.vcxproj
         shell: pwsh
 
