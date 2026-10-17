@@ -5894,18 +5894,26 @@ void StatusPanel::on_switch_speed(wxCommandEvent &event)
     sizer->Add(step, 1, wxEXPAND, 0);
     popUp->SetSizer(sizer);
     auto em = em_unit(this);
-    popUp->SetSize(em * 36, em * 8);
+    popUp->SetSize(em * 45, em * 8);
     step->SetHint(_L("This only takes effect during printing"));
+    // items: Silent, Moderate (75%, no firmware level, sent as G-code), Standard, Sport, Ludicrous
     step->AppendItem(_L("Silent"), "");
+    step->AppendItem(_L("Moderate"), "");
     step->AppendItem(_L("Standard"), "");
     step->AppendItem(_L("Sport"), "");
     step->AppendItem(_L("Ludicrous"), "");
 
     // default speed lvl
-    int selected_item = 1;
+    int selected_item = 2;
     if (obj) {
-        int speed_lvl_idx = obj->GetPrintingSpeedLevel() - 1;
-        if (speed_lvl_idx >= 0 && speed_lvl_idx < 4) { selected_item = speed_lvl_idx; }
+        int speed_lvl = obj->GetPrintingSpeedLevel();
+        if (speed_lvl == SPEED_LEVEL_SILENCE) {
+            selected_item = 0;
+        } else if (speed_lvl > SPEED_LEVEL_SILENCE && speed_lvl < SPEED_LEVEL_COUNT) {
+            selected_item = speed_lvl;
+        }
+        // the firmware keeps reporting its last level after a custom speed, so detect it by the magnitude
+        if (std::abs(obj->printing_speed_mag - MODERATE_SPEED_PERCENT) <= 2) { selected_item = 1; }
     }
     step->SelectItem(selected_item);
 
@@ -5914,9 +5922,14 @@ void StatusPanel::on_switch_speed(wxCommandEvent &event)
     }
 
     step->Bind(EVT_STEP_CHANGED, [this](auto &e) {
-        this->speed_lvl = e.GetInt() + 1;
-        if (obj) {
-            set_hold_count(this->speed_lvl_timeout);
+        if (!obj) return;
+        set_hold_count(this->speed_lvl_timeout);
+        if (e.GetInt() == 1) {
+            obj->command_set_printing_speed_percent(MODERATE_SPEED_PERCENT);
+            wxString text_speed = wxString::Format("%d%%", MODERATE_SPEED_PERCENT);
+            m_switch_speed->SetLabels(text_speed, text_speed);
+        } else {
+            this->speed_lvl = e.GetInt() == 0 ? SPEED_LEVEL_SILENCE : e.GetInt();
             obj->command_set_printing_speed((DevPrintingSpeedLevel) this->speed_lvl);
         }
     });

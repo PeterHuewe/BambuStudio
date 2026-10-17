@@ -1829,6 +1829,21 @@ int MachineObject::command_set_printing_speed(DevPrintingSpeedLevel lvl)
     return this->publish_json(j);
 }
 
+int MachineObject::command_set_printing_speed_percent(int percent)
+{
+    if (percent < 30 || percent > 180)
+        return -1;
+
+    // The firmware only knows the four speed levels, other speeds are set via the underlying G-code.
+    // The interpolation reproduces the values of the built-in levels (e.g. 50% -> K0.30 / K0.69 / R2.0)
+    double time_factor  = std::floor(10000.0 / percent) / 100.0;
+    double acceleration = std::exp((time_factor - 1.0191) / -0.814);
+    double feed_rate    = 0.00006426 * percent * percent - 0.002484 * percent + 0.654;
+
+    std::string gcode = (boost::format("M204.2 K%.2f\nM220 K%.2f\nM73.2 R%.2f\n") % acceleration % feed_rate % time_factor).str();
+    return this->publish_gcode(gcode);
+}
+
 int MachineObject::command_set_printing_option(bool auto_recovery)
 {
     int print_option = (int)auto_recovery << (int)PRINT_OP_AUTO_RECOVERY;

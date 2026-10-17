@@ -709,6 +709,8 @@ public:
 
     // set printing speed
     int command_set_printing_speed(DevPrintingSpeedLevel lvl);
+    // set a custom printing speed in percent (30 - 180), sent as G-code
+    int command_set_printing_speed_percent(int percent);
 
     // set print option
     int command_set_printing_option(bool auto_recovery);
